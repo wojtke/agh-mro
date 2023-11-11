@@ -41,23 +41,16 @@ class Trainer:
         self.gen_opt = optim.Adam(self.generator.parameters(), lr=config["lr"], weight_decay=config["l2"])
         self.dis_opt = optim.Adam(self.discriminator.parameters(), lr=config["lr"], weight_decay=config["l2"])
 
-        run = wandb.init(
-            project="gan-mro",
-            config=config,
-            resume=config["resume"],
-            mode="online" if config["use_wandb"] else "disabled",
-        )
+        run = wandb.init(project="gan-mro", config=config, resume=config["resume"])
         self.run_dir = os.path.join("runs", run.name)
         self.snapshot_path = os.path.join(self.run_dir, "training_snapshot.pt")
         os.makedirs(self.run_dir, exist_ok=True)
 
-        if config["load_snapshot"] and os.path.exists(self.snapshot_path):
+        if config["resume"] and os.path.exists(self.snapshot_path):
             print("Starting trainig from a snapshot")
             self.load_snapshot()
-            resumed = True
         else:
             print("Starting trainig from scratch")
-            resumed = False
 
     def save_snapshot(self):
         snapshot = {
@@ -103,11 +96,13 @@ class Trainer:
             running_loss_gen = 0
             for real_imgs in self.dataloader:
                 real_imgs = real_imgs.cuda()
-                real_labels = torch.ones(self.batch_size, 1).cuda()
+                real_labels = torch.normal(1, 0.05, (self.batch_size, 1)).cuda()
+                # real_labels = torch.ones(self.batch_size, 1).cuda()
                 noise = torch.normal(0, 1, [self.batch_size, self.generator.fc.in_features]).cuda()
 
                 fake_imgs = self.generator(noise)
-                fake_labels = torch.zeros(self.batch_size, 1).cuda()
+                fake_labels = torch.normal(0, 0.05, (self.batch_size, 1)).cuda()
+                # fake_labels = torch.zeros(self.batch_size, 1).cuda()
 
                 self.dis_opt.zero_grad()
                 outputs_real = self.discriminator(real_imgs)

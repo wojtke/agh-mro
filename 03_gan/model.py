@@ -112,37 +112,80 @@ class DiscriminatorLarge(nn.Module):
         return x
 
 
+# class AlternativeGenerator(nn.Module):
+#     def __init__(self):
+#         super(AlternativeGenerator, self).__init__()
+#         self.fc = nn.Linear(128, 128 * 8 * 8)
+
+#         self.upsample = nn.Upsample(scale_factor=2, mode="bilinear")
+
+#         self.conv1 = nn.Conv2d(128, 64, kernel_size=3, stride=1, padding=1)
+#         self.bn1 = nn.BatchNorm2d(64)
+
+#         self.conv2 = nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1)
+#         self.bn2 = nn.BatchNorm2d(128)
+
+#         self.conv3 = nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1)
+#         self.bn3 = nn.BatchNorm2d(256)
+
+#         self.final_conv = nn.Conv2d(256, 3, kernel_size=5, stride=1, padding=2)
+#         self.act = nn.LeakyReLU(negative_slope=0.2)
+
+#     def forward(self, x):
+#         x = self.fc(x)
+#         x = x.view(-1, 128, 8, 8)
+
+#         x = self.upsample(x)
+#         x = self.act(self.bn1(self.conv1(x)))
+
+#         x = self.upsample(x)
+#         x = self.act(self.bn2(self.conv2(x)))
+
+#         x = self.upsample(x)
+#         x = self.act(self.bn3(self.conv3(x)))
+
+#         x = torch.tanh(self.final_conv(x))
+
+#         return x
+
+
+class ConvBlock(nn.Module):
+    def __init__(self, in_ch, out_ch):
+        super(ConvBlock, self).__init__()
+        self.conv = nn.Conv2d(in_ch, out_ch, kernel_size=3, stride=1, padding=1)
+        self.bn = nn.BatchNorm2d(out_ch)
+        self.act = nn.LeakyReLU(negative_slope=0.2)
+
+    def forward(self, x):
+        return self.act(self.bn(self.conv(x)))
+
+
 class AlternativeGenerator(nn.Module):
     def __init__(self):
         super(AlternativeGenerator, self).__init__()
-        self.fc = nn.Linear(128, 128 * 8 * 8)
+        self.fc = nn.Linear(64, 64 * 4 * 4)
 
         self.upsample = nn.Upsample(scale_factor=2, mode="bilinear")
 
-        self.conv1 = nn.Conv2d(128, 64, kernel_size=3, stride=1, padding=1)
-        self.bn1 = nn.BatchNorm2d(64)
-
-        self.conv2 = nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1)
-        self.bn2 = nn.BatchNorm2d(128)
-
-        self.conv3 = nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1)
-        self.bn3 = nn.BatchNorm2d(256)
+        self.cb1 = ConvBlock(64, 64)
+        self.cb2 = ConvBlock(64, 128)
+        self.cb3 = ConvBlock(128, 256)
 
         self.final_conv = nn.Conv2d(256, 3, kernel_size=5, stride=1, padding=2)
         self.act = nn.LeakyReLU(negative_slope=0.2)
 
     def forward(self, x):
         x = self.fc(x)
-        x = x.view(-1, 128, 8, 8)
+        x = x.view(-1, 64, 4, 4)
 
         x = self.upsample(x)
-        x = self.act(self.bn1(self.conv1(x)))
+        x = self.cb1(x)
 
         x = self.upsample(x)
-        x = self.act(self.bn2(self.conv2(x)))
+        x = self.cb2(x)
 
         x = self.upsample(x)
-        x = self.act(self.bn3(self.conv3(x)))
+        x = self.cb3(x)
 
         x = torch.tanh(self.final_conv(x))
 
